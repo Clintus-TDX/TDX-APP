@@ -77,13 +77,14 @@ export function LoginScreen() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-8">
       {/* Branding */}
       <div className="flex flex-col items-center mb-8">
-        <Image
-          src="/techadox-logo.png"
+        <img
+          src="/Techadox_Logo.png"
           alt="Techadox Logo"
-          width={220}
-          height={88}
-          className="object-contain"
-          priority
+          className="h-22 object-contain"
+          onError={(e) => {
+            const img = e.target as HTMLImageElement;
+            img.src = "/Logo.png";
+          }}
         />
       </div>
 
