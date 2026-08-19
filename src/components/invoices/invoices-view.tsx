@@ -500,7 +500,7 @@ function InvoiceViewerDialog({ invoiceId, onClose, onExpand }: { invoiceId: stri
             <div className="space-y-6 p-2">
               {/* Header with Logo Fixed */}
               <div className="flex items-start gap-4 mb-2">
-                <Image src="/techadox-logo.png" alt="Techadox" width={120} height={56} className="h-14 w-auto rounded object-contain shrink-0" />
+                <Image src="/Techadox_Logo.png" alt="Techadox" width={120} height={56} className="h-14 w-auto rounded object-contain shrink-0" priority />
                 <div>
                   <h3 className="font-bold text-lg">{inv.vendorName || COMPANY.name}</h3>
                   <p className="text-sm text-muted-foreground">{COMPANY.address}</p>
@@ -835,7 +835,7 @@ function ExpandedInvoiceView({ invoiceId, onBack }: { invoiceId: string; onBack:
         <CardContent className="p-6">
           <div className="flex flex-col lg:flex-row gap-6">
             <div className="flex items-start gap-4 lg:w-1/2">
-              <Image src="/techadox-logo.png" alt="Techadox" width={140} height={56} className="h-14 w-auto rounded-lg shrink-0 object-contain" />
+              <Image src="/Techadox_Logo.png" alt="Techadox" width={140} height={56} className="h-14 w-auto rounded-lg shrink-0 object-contain" priority />
               <div>
                 <h3 className="text-xl font-bold">{inv.vendorName || COMPANY.name}</h3>
                 <p className="text-sm text-muted-foreground mt-1">{COMPANY.address}</p>
