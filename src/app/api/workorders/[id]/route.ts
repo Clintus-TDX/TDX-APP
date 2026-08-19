@@ -19,6 +19,7 @@ export async function GET(
     include: {
       attachments: { orderBy: { order: "asc" } },
       client: { select: { id: true, name: true, address: true, contactName: true, contactEmail: true } },
+      jobPlatform: { select: { id: true, name: true } },
       fieldEngineer: { select: { id: true, name: true, email: true, phone: true } },
     },
   });
@@ -47,20 +48,20 @@ export async function PUT(
 
   const data: Record<string, unknown> = {};
   const updatable = [
-    "ticketId", "clientId", "clientName", "jobPlatformId", "jobPlatformName",
+    "ticketId", "clientName", "jobPlatformName",
     "status", "customerReferences", "siteLocation", "payRatePrimary", "payRateSecondary",
-    "fieldEngineerId", "fieldEngineerName", "hours", "expenses", "incurredExpenses",
+    "fieldEngineerName", "hours", "expenses", "incurredExpenses",
     "hourlyRate", "comments", "notes",
-    // New fields
+    // Extended fields
     "streetAddress", "city", "state", "zipCode", "country",
     "pickupSiteNotes", "deliverySiteNotes", "etaDlaDate",
-    "salesOrder", "taskNumber", "serialNumber", "toxCode",
+    "salesOrder", "taskNumber", "serialNumber", "tdxCode",
     "engineerPhone", "engineerContactAlt", "engineerEmail",
     "workedStartTime", "workedEndTime",
-    "authorizedExpenses", "billRate", "flatRate", "editManually", "approveStatusSigner", // <-- Added flatRate
+    "authorizedExpenses", "billRate", "flatRate", "editManually", "approveStatusSigner",
   ];
 
-  const numericFields = ["hours", "expenses", "incurredExpenses", "hourlyRate", "authorizedExpenses", "billRate", "flatRate"]; // <-- Added flatRate
+  const numericFields = ["hours", "expenses", "incurredExpenses", "hourlyRate", "authorizedExpenses", "billRate", "flatRate"];
   const dateFields = ["workedStartTime", "workedEndTime", "etaDlaDate"];
   const booleanFields = ["editManually"];
 
@@ -77,6 +78,18 @@ export async function PUT(
       }
     }
   }
+
+  // Handle relational connections properly via Prisma relation syntax
+  if (body.clientId !== undefined) {
+    data.client = body.clientId ? { connect: { id: body.clientId as string } } : { disconnect: true };
+  }
+  if (body.jobPlatformId !== undefined) {
+    data.jobPlatform = body.jobPlatformId ? { connect: { id: body.jobPlatformId as string } } : { disconnect: true };
+  }
+  if (body.fieldEngineerId !== undefined) {
+    data.fieldEngineer = body.fieldEngineerId ? { connect: { id: body.fieldEngineerId as string } } : { disconnect: true };
+  }
+
   data.dateModified = new Date();
 
   try {
