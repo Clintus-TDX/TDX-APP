@@ -58,10 +58,10 @@ export async function PUT(
     "salesOrder", "taskNumber", "serialNumber", "tdxCode",
     "engineerPhone", "engineerContactAlt", "engineerEmail",
     "workedStartTime", "workedEndTime",
-    "authorizedExpenses", "billRate", "flatRate", "editManually", "approveStatusSigner",
+    "authorizedExpenses", "billRate", "editManually", "approveStatusSigner",
   ];
 
-  const numericFields = ["hours", "expenses", "incurredExpenses", "hourlyRate", "authorizedExpenses", "billRate", "flatRate"];
+  const numericFields = ["hours", "expenses", "incurredExpenses", "hourlyRate", "authorizedExpenses", "billRate"];
   const dateFields = ["workedStartTime", "workedEndTime", "etaDlaDate"];
   const booleanFields = ["editManually"];
 
