@@ -47,11 +47,11 @@ export async function POST(req: NextRequest) {
   }
 
   // Ensure storage/attachments directory exists
-  const storageDir = path.join(process.cwd(), "storage", "attachments");
+  const storageDir = path.join(process.cwd(), "public", "attachments");
   try {
     await mkdir(storageDir, { recursive: true });
-  } catch {
-    // Directory already exists or error ignored
+  } catch (e: any) {
+    return jsonError(`Failed to create directory: ${e.message}`);
   }
 
   for (const file of files) {
