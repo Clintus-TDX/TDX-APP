@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 // Load logo as base64 once for PDF embedding
 let LOGO_BASE64 = "";
 try {
-  const logoBuf = readFileSync(join(process.cwd(), "public/techadox-logo.png"));
+  const logoBuf = readFileSync(join(process.cwd(), "public/Techadox_Logo.png"));
   LOGO_BASE64 = `data:image/png;base64,${logoBuf.toString("base64")}`;
 } catch { /* logo not found */ }
 
