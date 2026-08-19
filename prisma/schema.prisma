@@ -6,30 +6,31 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id               String   @id @default(cuid())
-  email            String   @unique
-  name             String
-  passwordHash     String
-  role             String   @default("Dispatcher") // Super Admin | Admin | Manager | Dispatcher | <custom role name>
-  status           String   @default("Active") // Active | Inactive
-  phone            String?
-  title            String?
+  id                String   @id @default(cuid())
+  email             String   @unique
+  name              String
+  passwordHash      String
+  role              String   @default("Dispatcher") // Super Admin | Admin | Manager | Dispatcher | <custom role name>
+  status            String   @default("Active") // Active | Inactive
+  phone             String?
+  title             String?
   // Per-user preferences (persisted)
-  colorTheme       String   @default("teal") // teal | classicBlue | slate | emerald | crimson | midnight | sunset
-  darkMode         Boolean  @default(false)
-  columnOrder      String   @default("[]") // JSON: ordered list of grid column keys
-  pageSize         Int      @default(10)
-  reportColumns    String   @default("[]") // JSON: selected report column keys
-  reportColumnOrder String  @default("[]") // JSON: ordered report columns
-  notifyPrefs      String   @default("{}") // JSON: notification preferences
-  advancedAccounts Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  colorTheme        String   @default("teal") // teal | classicBlue | slate | emerald | crimson | midnight | sunset
+  darkMode          Boolean  @default(false)
+  columnOrder       String   @default("[]") // JSON: ordered list of grid column keys
+  pageSize          Int      @default(10)
+  reportColumns     String   @default("[]") // JSON: selected report column keys
+  reportColumnOrder String   @default("[]") // JSON: ordered report columns
+  notifyPrefs       String   @default("{}") // JSON: notification preferences
+  advancedAccounts  Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model Client {
@@ -60,60 +61,67 @@ model JobPlatform {
 }
 
 model WorkOrder {
-  id                 String    @id @default(cuid())
-  ticketId           String
-  clientId           String?
-  clientName         String    @default("")
-  jobPlatformId      String?
-  jobPlatformName    String    @default("")
-  status             String    @default("Open / Pending")
-  customerReferences String    @default("")
+  id                      String         @id @default(cuid())
+  ticketId                String
+  clientId                String?
+  clientName              String         @default("")
+  jobPlatformId           String?
+  jobPlatformName         String         @default("")
+  status                  String         @default("Open / Pending")
+  customerReferences      String         @default("")
   // Structured site / location
-  siteLocation       String    @default("")
-  streetAddress      String    @default("")
-  city               String    @default("")
-  state              String    @default("")
-  zipCode            String    @default("")
-  country            String    @default("USA")
-  pickupSiteNotes    String    @default("")
-  deliverySiteNotes  String    @default("")
-  etaDlaDate         DateTime?
+  siteLocation            String         @default("")
+  streetAddress           String         @default("")
+  city                    String         @default("")
+  state                   String         @default("")
+  zipCode                 String         @default("")
+  country                 String         @default("USA")
+  pickupSiteNotes         String         @default("")
+  deliverySiteNotes       String         @default("")
+  etaDlaDate              DateTime?
   // Order / customer detail fields
-  salesOrder         String    @default("")
-  taskNumber         String    @default("")
-  serialNumber       String    @default("")
-  toxCode            String    @default("")
+  salesOrder              String         @default("")
+  taskNumber              String         @default("")
+  serialNumber            String         @default("")
+  tdxCode                 String         @default("") // Renamed from toxCode
   // Engineer details
-  payRatePrimary     String    @default("")
-  payRateSecondary   String    @default("")
-  fieldEngineerId    String?
-  fieldEngineerName  String    @default("")
-  engineerPhone      String    @default("")
-  engineerContactAlt String    @default("")
-  engineerEmail      String    @default("")
+  payRatePrimary          String         @default("")
+  payRateSecondary        String         @default("")
+  fieldEngineerId         String?
+  fieldEngineerName       String         @default("")
+  engineerPhone           String         @default("")
+  engineerContactAlt      String         @default("")
+  engineerEmail           String         @default("")
   // Time tracking
-  workedStartTime    DateTime?
-  workedEndTime      DateTime?
-  hours              Float     @default(0)
+  workedStartTime         DateTime?
+  workedEndTime           DateTime?
+  hours                   Float          @default(0)
+  // Logistics & Timestamps
+  actualPickupDate        DateTime?
+  actualDeliveryDate      DateTime?
+  ticketReceivedTime      DateTime?
+  acknowledgementTime     DateTime?
+  technicianSubmittalTime DateTime?
   // Financials
-  expenses           Float     @default(0)
-  incurredExpenses   Float     @default(0)
-  authorizedExpenses Float     @default(0)
-  hourlyRate         Float     @default(0)
-  billRate           Float     @default(0)
-  flatRate           Float     @default(0)
-  editManually       Boolean   @default(false)
-  approveStatusSigner String   @default("")
+  expenses                Float          @default(0)
+  incurredExpenses        Float          @default(0) // Technician Incurred Expenses
+  technicianExpenses      Float          @default(0) // NEW
+  authorizedExpenses      Float          @default(0)
+  hourlyRate              Float          @default(0)
+  billRate                Float          @default(0)
+  editManually            Boolean        @default(false)
+  approveStatusSigner     String         @default("")
   // Notes
-  comments           String    @default("")
-  notes              String    @default("[]") // JSON: [{ id, text, author, timestamp }]
-  dateCreated        DateTime  @default(now())
-  dateModified       DateTime  @default(now())
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  client             Client?       @relation(fields: [clientId], references: [id])
-  fieldEngineer      FieldEngineer? @relation(fields: [fieldEngineerId], references: [id])
-  attachments        Attachment[]
+  comments                String         @default("")
+  closingNotes            String         @default("") // NEW
+  notes                   String         @default("[]") // JSON: [{ id, text, author, timestamp }]
+  dateCreated             DateTime       @default(now())
+  dateModified            DateTime       @default(now())
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  client                  Client?        @relation(fields: [clientId], references: [id])
+  fieldEngineer           FieldEngineer? @relation(fields: [fieldEngineerId], references: [id])
+  attachments             Attachment[]
 }
 
 model Attachment {
@@ -200,36 +208,36 @@ model AuditLog {
 }
 
 model QuickBooksSyncLog {
-  id          String   @id @default(cuid())
-  syncType    String   // invoice | payment | customer | vendor | account
-  direction   String   // push | pull
-  entityType  String   // "Invoice" | "Payment" | "Customer" etc.
-  entityId    String   @default("")
-  qbId        String   @default("")
-  status      String   @default("pending") // pending | success | error
-  summary     String   @default("")
-  syncedAt    DateTime @default(now())
+  id         String   @id @default(cuid())
+  syncType   String   // invoice | payment | customer | vendor | account
+  direction  String   // push | pull
+  entityType String   // "Invoice" | "Payment" | "Customer" etc.
+  entityId   String   @default("")
+  qbId       String   @default("")
+  status     String   @default("pending") // pending | success | error
+  summary    String   @default("")
+  syncedAt   DateTime @default(now())
 }
 
 model EmailLog {
-  id     String   @id @default(cuid())
-  to     String
+  id      String   @id @default(cuid())
+  to      String
   subject String
-  body   String
-  type   String // welcome | password_reset | invoice
-  sentAt DateTime @default(now())
+  body    String
+  type    String // welcome | password_reset | invoice
+  sentAt  DateTime @default(now())
 }
 
 model QuickBooksConnection {
-  id            String   @id @default(cuid())
-  realmId       String   @default("")
-  accessToken   String   @default("")
-  refreshToken  String   @default("")
-  accountName   String   @default("")
-  connected     Boolean  @default(true)
-  connectedAt   DateTime @default(now())
+  id            String    @id @default(cuid())
+  realmId       String    @default("")
+  accessToken   String    @default("")
+  refreshToken  String    @default("")
+  accountName   String    @default("")
+  connected     Boolean   @default(true)
+  connectedAt   DateTime  @default(now())
   expiresAt     DateTime?
-  syncStatus    String   @default("idle") // idle | syncing | synced | error
+  syncStatus    String    @default("idle") // idle | syncing | synced | error
   lastSyncAt    DateTime?
-  lastSyncError String   @default("")
+  lastSyncError String    @default("")
 }
