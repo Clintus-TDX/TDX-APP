@@ -1,16 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
-  /* config options here */
+  // Do NOT use output: "standalone" on Vercel — it causes the .nft.json error
   typescript: {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
-  allowedDevOrigins: [
-    "space-z.ai",
-    "127.0.0.1",
-  ],
 };
 
 export default nextConfig;
