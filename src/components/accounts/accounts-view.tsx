@@ -154,7 +154,9 @@ export function AccountsView() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "connect" }),
       });
-      return res.json();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Connection failed");
+      return data;
     },
     onSuccess: (data) => {
       if (data.authUrl) {
@@ -171,25 +173,30 @@ export function AccountsView() {
             }
           }, 1000);
         }
-      } else if (data.error) {
-        showToast(data.error, "error");
       }
     },
-    onError: () => showToast("Failed to initiate QuickBooks connection", "error"),
+    onError: (err: Error) => showToast(`QB Error: ${err.message}`, "error"),
   });
 
   // Disconnect QB
   const disconnectQBMut = useMutation({
-    mutationFn: () => fetch("/api/accounts/quickbooks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "disconnect" }),
-    }),
+    mutationFn: async () => {
+      const res = await fetch("/api/accounts/quickbooks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "disconnect" }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Disconnect failed");
+      }
+    },
     onSuccess: () => {
       setDisconnectConfirm(false);
       refetchQB();
       showToast("Disconnected from QuickBooks", "success");
     },
+    onError: (err: Error) => showToast(`Disconnect error: ${err.message}`, "error"),
   });
 
   // Sync invoices to QB

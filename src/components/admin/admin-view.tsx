@@ -96,10 +96,12 @@ export function AdminView({ onNavigate }: { onNavigate?: (tab: string) => void }
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notifyPrefs, quietHours: quietHoursEnabled ? { enabled: true, from: quietFrom, to: quietTo } : { enabled: false } }),
       });
-      if (!res.ok) throw new Error("Save failed");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Save failed");
+      return data;
     },
     onSuccess: () => setToast("Notification preferences saved"),
-    onError: () => setToast("Failed to save preferences"),
+    onError: (err: Error) => setToast(`Error: ${err.message}`),
   });
 
   // Fetch users

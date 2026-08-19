@@ -181,11 +181,9 @@ export function InvoicesView() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ workOrderIds: createWos }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to create invoice");
-      }
-      return res.json();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create invoice");
+      return data;
     },
     onSuccess: () => { setCreateOpen(false); setCreateWos([]); setSelectedFields({ ...DEFAULT_INVOICE_FIELDS }); qc.invalidateQueries({ queryKey: ["invoices"] }); setToast("Invoice created successfully"); },
     onError: (err) => { setToast(`Error: ${err.message}`); },
@@ -500,7 +498,7 @@ function InvoiceViewerDialog({ invoiceId, onClose, onExpand }: { invoiceId: stri
             <div className="space-y-6 p-2">
               {/* Header with Logo Fixed */}
               <div className="flex items-start gap-4 mb-2">
-                <Image src="/Techadox_Logo.png" alt="Techadox" width={120} height={56} className="h-14 w-auto rounded object-contain shrink-0" priority />
+                <Image src="/techadox-logo.png" alt="Techadox" width={120} height={56} className="h-14 w-auto rounded object-contain shrink-0" />
                 <div>
                   <h3 className="font-bold text-lg">{inv.vendorName || COMPANY.name}</h3>
                   <p className="text-sm text-muted-foreground">{COMPANY.address}</p>
@@ -649,7 +647,7 @@ function ExpandedInvoiceView({ invoiceId, onBack }: { invoiceId: string; onBack:
       const taxRate = parseFloat(editTaxRate) || 0;
       const tax = sub * taxRate;
 
-      await fetch(`/api/invoices/${invoiceId}`, {
+      const res = await fetch(`/api/invoices/${invoiceId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -662,6 +660,10 @@ function ExpandedInvoiceView({ invoiceId, onBack }: { invoiceId: string; onBack:
           dueDate: editDueDate ? new Date(editDueDate).toISOString() : null,
         }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to save invoice");
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["invoices"] });
@@ -669,6 +671,7 @@ function ExpandedInvoiceView({ invoiceId, onBack }: { invoiceId: string; onBack:
       setIsEditing(false);
       setToast("Invoice updated successfully");
     },
+    onError: (err: Error) => setToast(`Save error: ${err.message}`),
   });
 
   const deleteMut = useMutation({
@@ -680,7 +683,7 @@ function ExpandedInvoiceView({ invoiceId, onBack }: { invoiceId: string; onBack:
     mutationFn: async () => {
       const amount = parseFloat(payAmount);
       if (!amount || amount <= 0) throw new Error("Invalid amount");
-      await fetch("/api/accounts/payments", {
+      const res = await fetch("/api/accounts/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -690,6 +693,10 @@ function ExpandedInvoiceView({ invoiceId, onBack }: { invoiceId: string; onBack:
           status: "Completed",
         }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Payment failed");
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["invoices"] });
@@ -698,6 +705,7 @@ function ExpandedInvoiceView({ invoiceId, onBack }: { invoiceId: string; onBack:
       setPayAmount("");
       setToast("Payment recorded successfully");
     },
+    onError: (err: Error) => setToast(`Payment error: ${err.message}`),
   });
 
   const downloadPDF = async () => {
@@ -835,7 +843,7 @@ function ExpandedInvoiceView({ invoiceId, onBack }: { invoiceId: string; onBack:
         <CardContent className="p-6">
           <div className="flex flex-col lg:flex-row gap-6">
             <div className="flex items-start gap-4 lg:w-1/2">
-              <Image src="/Techadox_Logo.png" alt="Techadox" width={140} height={56} className="h-14 w-auto rounded-lg shrink-0 object-contain" priority />
+              <Image src="/techadox-logo.png" alt="Techadox" width={140} height={56} className="h-14 w-auto rounded-lg shrink-0 object-contain" />
               <div>
                 <h3 className="text-xl font-bold">{inv.vendorName || COMPANY.name}</h3>
                 <p className="text-sm text-muted-foreground mt-1">{COMPANY.address}</p>
