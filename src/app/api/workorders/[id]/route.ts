@@ -62,7 +62,8 @@ export async function PUT(
     "engineerPhone", "engineerContactAlt", "engineerEmail",
     "workedStartTime", "workedEndTime",
     "authorizedExpenses", "billRate", "editManually", "approveStatusSigner",
-    "jobPlatformId", "fieldEngineerId",
+    "jobPlatformId",
+    // ✅ FIXED: Removed 'fieldEngineerId' - handle separately as relation field below
   ];
 
   const numericFields = ["hours", "expenses", "incurredExpenses", "hourlyRate", "authorizedExpenses", "billRate"];
@@ -90,6 +91,19 @@ export async function PUT(
   // Handle client relation connection safely
   if (body.clientId !== undefined) {
     data.client = body.clientId ? { connect: { id: body.clientId as string } } : { disconnect: true };
+  }
+
+  // ✅ FIXED: Handle fieldEngineer relation connection safely
+  // IMPORTANT: Prisma relations with @relation(fields: [...]) must be updated via the relation field,
+  // not the foreign key field. Using fieldEngineerId directly would cause:
+  // "Unknown argument 'fieldEngineerId'. Did you mean 'fieldEngineer'?"
+  // 
+  // The relation field (fieldEngineer) must use the nested connect/disconnect syntax.
+  // When fieldEngineerId is undefined, we treat it as setting/clearing the engineer assignment.
+  if (body.fieldEngineerId !== undefined) {
+    data.fieldEngineer = body.fieldEngineerId
+      ? { connect: { id: body.fieldEngineerId as string } }
+      : { disconnect: true };
   }
 
   data.dateModified = new Date();
