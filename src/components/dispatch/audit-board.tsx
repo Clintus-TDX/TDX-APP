@@ -323,12 +323,30 @@ export function AuditBoard({ workOrderId, onClose, onSaved }: AuditBoardProps) {
       const siteLoc = [form.streetAddress, form.city, form.state, form.zipCode]
         .filter(Boolean).join(", ");
 
-      const payload = {
-        ...form,
+      const allowedFields = [
+        "ticketId", "clientId", "clientName", "jobPlatformId", "jobPlatformName",
+        "status", "customerReferences", "siteLocation", "payRatePrimary", "payRateSecondary",
+        "fieldEngineerId", "fieldEngineerName", "hours", "expenses", "incurredExpenses",
+        "hourlyRate", "comments", "notes",
+        "streetAddress", "city", "state", "zipCode", "country",
+        "pickupSiteNotes", "deliverySiteNotes", "etaDlaDate",
+        "salesOrder", "taskNumber", "serialNumber", "toxCode",
+        "engineerPhone", "engineerContactAlt", "engineerEmail",
+        "workedStartTime", "workedEndTime",
+        "authorizedExpenses", "billRate", "editManually", "approveStatusSigner",
+      ];
+
+      const payload: Record<string, unknown> = {
         customerReferences: customerRefs,
         siteLocation: siteLoc,
         editManually,
       };
+
+      for (const key of allowedFields) {
+        if (key in form) {
+          payload[key] = form[key];
+        }
+      }
 
       const res = await fetch(`/api/workorders/${workOrderId}`, {
         method: "PUT",
