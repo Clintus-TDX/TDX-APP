@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser, hasPermission, logAudit } from "@/lib/server";
-import { jsonError, jsonOk } from "@/lib/server-helpers";
+import { safeParse, jsonError, jsonOk } from "@/lib/server-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -14,20 +14,16 @@ export async function GET(
   if (!user || !hasPermission(user, "view_dispatch")) return jsonError("Unauthorized", 401);
   const { id } = await params;
 
-  try {
-    const wo = await db.workOrder.findUnique({
-      where: { id },
-      include: {
-        attachments: { orderBy: { order: "asc" } },
-        client: { select: { id: true, name: true, address: true, contactName: true, contactEmail: true } },
-        fieldEngineer: { select: { id: true, name: true, email: true, phone: true } },
-      },
-    });
-    if (!wo) return jsonError("Not found", 404);
-    return jsonOk({ workOrder: wo });
-  } catch (e: any) {
-    return jsonError(e.message || "Failed to fetch work order", 500);
-  }
+  const wo = await db.workOrder.findUnique({
+    where: { id },
+    include: {
+      attachments: { orderBy: { order: "asc" } },
+      client: { select: { id: true, name: true, address: true, contactName: true, contactEmail: true } },
+      fieldEngineer: { select: { id: true, name: true, email: true, phone: true } },
+    },
+  });
+  if (!wo) return jsonError("Not found", 404);
+  return jsonOk({ workOrder: wo });
 }
 
 // PUT /api/workorders/[id]
@@ -51,18 +47,17 @@ export async function PUT(
 
   const data: Record<string, unknown> = {};
   const updatable = [
-    "ticketId", "clientName", "jobPlatformName",
+    "ticketId", "clientId", "clientName", "jobPlatformId", "jobPlatformName",
     "status", "customerReferences", "siteLocation", "payRatePrimary", "payRateSecondary",
-    "fieldEngineerName", "hours", "expenses", "incurredExpenses",
+    "fieldEngineerId", "fieldEngineerName", "hours", "expenses", "incurredExpenses",
     "hourlyRate", "comments", "notes",
-    // Extended fields
+    // New fields
     "streetAddress", "city", "state", "zipCode", "country",
     "pickupSiteNotes", "deliverySiteNotes", "etaDlaDate",
-    "salesOrder", "taskNumber", "serialNumber", "tdxCode",
+    "salesOrder", "taskNumber", "serialNumber", "toxCode",
     "engineerPhone", "engineerContactAlt", "engineerEmail",
     "workedStartTime", "workedEndTime",
     "authorizedExpenses", "billRate", "editManually", "approveStatusSigner",
-    "jobPlatformId", "fieldEngineerId",
   ];
 
   const numericFields = ["hours", "expenses", "incurredExpenses", "hourlyRate", "authorizedExpenses", "billRate"];
@@ -78,20 +73,10 @@ export async function PUT(
       } else if (booleanFields.includes(key)) {
         (data as Record<string, unknown>)[key] = Boolean(body[key]);
       } else {
-        // ✅ FIXED: Use empty string as default instead of null for string fields
-        // This ensures non-nullable string fields (like payRateSecondary) never receive null values
-        // Previously: body[key] || null would convert "" to null, breaking Prisma validation
-        // Now: body[key] ?? "" preserves empty strings as intended per schema defaults
-        (data as Record<string, unknown>)[key] = body[key] ?? "";
+        (data as Record<string, unknown>)[key] = body[key];
       }
     }
   }
-
-  // Handle client relation connection safely
-  if (body.clientId !== undefined) {
-    data.client = body.clientId ? { connect: { id: body.clientId as string } } : { disconnect: true };
-  }
-
   data.dateModified = new Date();
 
   try {
