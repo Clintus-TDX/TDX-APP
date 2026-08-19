@@ -47,11 +47,12 @@ export function Header({ onToggleHelp, onNavigate }: HeaderProps) {
       {/* Logo */}
       <div className="flex items-center gap-2 mr-2 shrink-0">
         <Image
-          src="/techadox-logo.png"
+          src="/Techadox_Logo.png"
           alt="Techadox"
           width={32}
           height={28}
           className="object-contain"
+          priority
         />
         <span className="text-sm font-bold brand-gradient-text hidden sm:inline">
           {COMPANY.name}
