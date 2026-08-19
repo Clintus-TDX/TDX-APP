@@ -137,15 +137,16 @@ export function DispatchView({ initialFilter }: DispatchViewProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ columnOrder: JSON.stringify(orderToSave), pageSize }),
       });
-      if (!res.ok) throw new Error("Failed to save preferences");
-      return res.json();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save preferences");
+      return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["auth-user"] });
       setToast("Layout saved successfully to your profile!");
     },
-    onError: () => {
-      setToast("Failed to save layout preferences.");
+    onError: (err: Error) => {
+      setToast(`Error: ${err.message}`);
     },
   });
 
