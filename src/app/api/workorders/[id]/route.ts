@@ -14,17 +14,18 @@ export async function GET(
   if (!user || !hasPermission(user, "view_dispatch")) return jsonError("Unauthorized", 401);
   const { id } = await params;
 
-  const wo = await db.workOrder.findUnique({
-    where: { id },
-    include: {
-      attachments: { orderBy: { order: "asc" } },
-      client: { select: { id: true, name: true, address: true, contactName: true, contactEmail: true } },
-      jobPlatform: { select: { id: true, name: true } },
-      fieldEngineer: { select: { id: true, name: true, email: true, phone: true } },
-    },
-  });
-  if (!wo) return jsonError("Not found", 404);
-  return jsonOk({ workOrder: wo });
+  try {
+    const wo = await db.workOrder.findUnique({
+      where: { id },
+      include: {
+        attachments: { orderBy: { order: "asc" } },
+      },
+    });
+    if (!wo) return jsonError("Not found", 404);
+    return jsonOk({ workOrder: wo });
+  } catch (e: any) {
+    return jsonError(e.message || "Failed to fetch work order", 500);
+  }
 }
 
 // PUT /api/workorders/[id]
@@ -79,7 +80,7 @@ export async function PUT(
     }
   }
 
-  // Handle relational connections properly via Prisma relation syntax
+  // Safely handle relations if IDs are provided
   if (body.clientId !== undefined) {
     data.client = body.clientId ? { connect: { id: body.clientId as string } } : { disconnect: true };
   }
