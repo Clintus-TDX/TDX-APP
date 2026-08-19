@@ -19,6 +19,8 @@ export async function GET(
       where: { id },
       include: {
         attachments: { orderBy: { order: "asc" } },
+        client: { select: { id: true, name: true, address: true, contactName: true, contactEmail: true } },
+        fieldEngineer: { select: { id: true, name: true, email: true, phone: true } },
       },
     });
     if (!wo) return jsonError("Not found", 404);
@@ -60,7 +62,6 @@ export async function PUT(
     "engineerPhone", "engineerContactAlt", "engineerEmail",
     "workedStartTime", "workedEndTime",
     "authorizedExpenses", "billRate", "editManually", "approveStatusSigner",
-    // Scalar foreign keys
     "jobPlatformId", "fieldEngineerId",
   ];
 
