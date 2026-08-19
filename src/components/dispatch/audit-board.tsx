@@ -400,14 +400,17 @@ export function AuditBoard({ workOrderId, onClose, onSaved }: AuditBoardProps) {
       formData.append("workOrderId", workOrderId);
       for (const file of files) formData.append("files", file);
       const res = await fetch("/api/attachments", { method: "POST", body: formData });
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Upload failed");
+      }
       return res.json();
     },
     onSuccess: () => { 
       qc.invalidateQueries({ queryKey: ["workorder", workOrderId] }); 
       showToast("Attachment uploaded successfully"); 
     },
-    onError: () => { showToast("Failed to upload attachment"); },
+    onError: (err: Error) => { showToast(`Upload error: ${err.message}`); },
   });
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
