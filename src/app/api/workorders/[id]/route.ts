@@ -60,6 +60,8 @@ export async function PUT(
     "engineerPhone", "engineerContactAlt", "engineerEmail",
     "workedStartTime", "workedEndTime",
     "authorizedExpenses", "billRate", "editManually", "approveStatusSigner",
+    // Scalar foreign keys
+    "jobPlatformId", "fieldEngineerId",
   ];
 
   const numericFields = ["hours", "expenses", "incurredExpenses", "hourlyRate", "authorizedExpenses", "billRate"];
@@ -75,20 +77,14 @@ export async function PUT(
       } else if (booleanFields.includes(key)) {
         (data as Record<string, unknown>)[key] = Boolean(body[key]);
       } else {
-        (data as Record<string, unknown>)[key] = body[key];
+        (data as Record<string, unknown>)[key] = body[key] || null;
       }
     }
   }
 
-  // Safely handle relations if IDs are provided
+  // Handle client relation connection safely
   if (body.clientId !== undefined) {
     data.client = body.clientId ? { connect: { id: body.clientId as string } } : { disconnect: true };
-  }
-  if (body.jobPlatformId !== undefined) {
-    data.jobPlatform = body.jobPlatformId ? { connect: { id: body.jobPlatformId as string } } : { disconnect: true };
-  }
-  if (body.fieldEngineerId !== undefined) {
-    data.fieldEngineer = body.fieldEngineerId ? { connect: { id: body.fieldEngineerId as string } } : { disconnect: true };
   }
 
   data.dateModified = new Date();
