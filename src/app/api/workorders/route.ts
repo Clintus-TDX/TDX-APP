@@ -24,7 +24,6 @@ export async function GET(req: NextRequest) {
 
   const where: Record<string, unknown> = {};
   if (dueDate) {
-    // Parse in local timezone to match SQLite storage
     const parts = dueDate.split("-").map(Number);
     if (parts.length === 3 && !parts.some(isNaN)) {
       const start = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0);
@@ -38,14 +37,15 @@ export async function GET(req: NextRequest) {
   if (clientFilter) where.clientId = clientFilter;
   if (platformFilter) where.jobPlatformId = platformFilter;
   if (engineerFilter) where.fieldEngineerId = engineerFilter;
+  
   if (search) {
     (where as Record<string, unknown>).OR = [
-      { ticketId: { contains: search } },
-      { clientName: { contains: search } },
-      { fieldEngineerName: { contains: search } },
-      { siteLocation: { contains: search } },
-      { comments: { contains: search } },
-      { customerReferences: { contains: search } },
+      { ticketId: { contains: search, mode: "insensitive" } },
+      { clientName: { contains: search, mode: "insensitive" } },
+      { fieldEngineerName: { contains: search, mode: "insensitive" } },
+      { siteLocation: { contains: search, mode: "insensitive" } },
+      { comments: { contains: search, mode: "insensitive" } },
+      { customerReferences: { contains: search, mode: "insensitive" } },
     ];
   }
 
@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
           notes: true,
           dateCreated: true,
           dateModified: true,
-          // Extended fields
+          // Extended fields matching schema
           streetAddress: true,
           city: true,
           state: true,
@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
           salesOrder: true,
           taskNumber: true,
           serialNumber: true,
-          toxCode: true,
+          tdxCode: true,
           engineerPhone: true,
           engineerContactAlt: true,
           engineerEmail: true,
@@ -102,7 +102,6 @@ export async function GET(req: NextRequest) {
           workedEndTime: true,
           authorizedExpenses: true,
           billRate: true,
-          flatRate: true,
           editManually: true,
           approveStatusSigner: true,
           _count: { select: { attachments: true } },
@@ -136,7 +135,6 @@ export async function POST(req: NextRequest) {
     return jsonError("Invalid request body");
   }
 
-  // Validate required fields (Notice Field Engineer is intentionally omitted here to make it optional)
   const clientName = (body.clientName as string) || "";
   const jobPlatformName = (body.jobPlatformName as string) || "";
   if (!clientName) return jsonError("Client name is required", 400);
@@ -159,7 +157,6 @@ export async function POST(req: NextRequest) {
         siteLocation: (body.siteLocation as string) || "",
         payRatePrimary: (body.payRatePrimary as string) || "",
         payRateSecondary: (body.payRateSecondary as string) || "",
-        // Safely map missing/empty engineers to null/empty string
         fieldEngineerId: (body.fieldEngineerId as string) || null,
         fieldEngineerName: (body.fieldEngineerName as string) || "",
         hours: Number(body.hours) || 0,
@@ -168,7 +165,7 @@ export async function POST(req: NextRequest) {
         hourlyRate: Number(body.hourlyRate) || 0,
         comments: (body.comments as string) || "",
         notes: "[]",
-        // Extended fields
+        // Extended fields matching schema
         streetAddress: (body.streetAddress as string) || "",
         city: (body.city as string) || "",
         state: (body.state as string) || "",
@@ -180,7 +177,7 @@ export async function POST(req: NextRequest) {
         salesOrder: (body.salesOrder as string) || "",
         taskNumber: (body.taskNumber as string) || "",
         serialNumber: (body.serialNumber as string) || "",
-        toxCode: (body.toxCode as string) || "",
+        tdxCode: (body.tdxCode as string) || "",
         engineerPhone: (body.engineerPhone as string) || "",
         engineerContactAlt: (body.engineerContactAlt as string) || "",
         engineerEmail: (body.engineerEmail as string) || "",
@@ -188,7 +185,6 @@ export async function POST(req: NextRequest) {
         workedEndTime: body.workedEndTime ? new Date(body.workedEndTime as string) : null,
         authorizedExpenses: Number(body.authorizedExpenses) || 0,
         billRate: Number(body.billRate) || 0,
-        flatRate: Number(body.flatRate) || 0,
         editManually: Boolean(body.editManually),
         approveStatusSigner: (body.approveStatusSigner as string) || "",
       },
