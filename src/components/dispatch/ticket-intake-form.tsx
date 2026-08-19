@@ -251,13 +251,13 @@ export function TicketIntakeForm({ open, onClose, onSubmit }: TicketIntakeFormPr
           comments,
         }),
       });
+      const resData = await res.json();
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to create");
+        throw new Error(resData.error || "Failed to create");
       }
 
       if (attachments.length > 0) {
-        const { workOrder } = await res.json();
+        const { workOrder } = resData;
         const attachForm = new FormData();
         attachForm.append("workOrderId", workOrder.id);
         for (const file of attachments) {
