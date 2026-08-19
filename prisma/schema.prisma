@@ -1,0 +1,235 @@
+// Techadox Integrated Field Coordinator Portal
+// Database schema - human-built system. No AI-related fields.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  name             String
+  passwordHash     String
+  role             String   @default("Dispatcher") // Super Admin | Admin | Manager | Dispatcher | <custom role name>
+  status           String   @default("Active") // Active | Inactive
+  phone            String?
+  title            String?
+  // Per-user preferences (persisted)
+  colorTheme       String   @default("teal") // teal | classicBlue | slate | emerald | crimson | midnight | sunset
+  darkMode         Boolean  @default(false)
+  columnOrder      String   @default("[]") // JSON: ordered list of grid column keys
+  pageSize         Int      @default(10)
+  reportColumns    String   @default("[]") // JSON: selected report column keys
+  reportColumnOrder String  @default("[]") // JSON: ordered report columns
+  notifyPrefs      String   @default("{}") // JSON: notification preferences
+  advancedAccounts Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Client {
+  id           String      @id @default(cuid())
+  name         String
+  address      String?
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+  createdAt    DateTime    @default(now())
+  workOrders   WorkOrder[]
+}
+
+model FieldEngineer {
+  id             String      @id @default(cuid())
+  name           String
+  email          String?
+  phone          String?
+  specialization String?
+  createdAt      DateTime    @default(now())
+  workOrders     WorkOrder[]
+}
+
+model JobPlatform {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+}
+
+model WorkOrder {
+  id                 String    @id @default(cuid())
+  ticketId           String
+  clientId           String?
+  clientName         String    @default("")
+  jobPlatformId      String?
+  jobPlatformName    String    @default("")
+  status             String    @default("Open / Pending")
+  customerReferences String    @default("")
+  // Structured site / location
+  siteLocation       String    @default("")
+  streetAddress      String    @default("")
+  city               String    @default("")
+  state              String    @default("")
+  zipCode            String    @default("")
+  country            String    @default("USA")
+  pickupSiteNotes    String    @default("")
+  deliverySiteNotes  String    @default("")
+  etaDlaDate         DateTime?
+  // Order / customer detail fields
+  salesOrder         String    @default("")
+  taskNumber         String    @default("")
+  serialNumber       String    @default("")
+  toxCode            String    @default("")
+  // Engineer details
+  payRatePrimary     String    @default("")
+  payRateSecondary   String    @default("")
+  fieldEngineerId    String?
+  fieldEngineerName  String    @default("")
+  engineerPhone      String    @default("")
+  engineerContactAlt String    @default("")
+  engineerEmail      String    @default("")
+  // Time tracking
+  workedStartTime    DateTime?
+  workedEndTime      DateTime?
+  hours              Float     @default(0)
+  // Financials
+  expenses           Float     @default(0)
+  incurredExpenses   Float     @default(0)
+  authorizedExpenses Float     @default(0)
+  hourlyRate         Float     @default(0)
+  billRate           Float     @default(0)
+  flatRate           Float     @default(0)
+  editManually       Boolean   @default(false)
+  approveStatusSigner String   @default("")
+  // Notes
+  comments           String    @default("")
+  notes              String    @default("[]") // JSON: [{ id, text, author, timestamp }]
+  dateCreated        DateTime  @default(now())
+  dateModified       DateTime  @default(now())
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  client             Client?       @relation(fields: [clientId], references: [id])
+  fieldEngineer      FieldEngineer? @relation(fields: [fieldEngineerId], references: [id])
+  attachments        Attachment[]
+}
+
+model Attachment {
+  id          String    @id @default(cuid())
+  workOrderId String
+  fileName    String
+  fileType    String
+  fileSize    Int
+  filePath    String
+  order       Int       @default(0)
+  uploadedAt  DateTime  @default(now())
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
+}
+
+model Invoice {
+  id               String    @id @default(cuid())
+  invoiceNumber    String
+  clientId         String?
+  clientName       String    @default("")
+  workOrderIds     String    @default("[]") // JSON
+  vendorName       String    @default("Techadox")
+  vendorAddress    String    @default("261 Chapman Road, Suite 104 A, Newark, DE 19702")
+  vendorTaxId      String    @default("")
+  billToName       String    @default("")
+  billToAddress    String    @default("")
+  lineItems        String    @default("[]") // JSON
+  taxRate          Float     @default(0)
+  notes            String    @default("")
+  signature        String    @default("")
+  status           String    @default("Draft") // Draft | Pending | Paid | Overdue
+  issueDate        DateTime  @default(now())
+  dueDate          DateTime?
+  subtotal         Float     @default(0)
+  tax              Float     @default(0)
+  total            Float     @default(0)
+  jobPlatformName  String    @default("")
+  payRatePrimary   String    @default("")
+  payRateSecondary String    @default("")
+  fieldEngineerName String   @default("")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  payments         Payment[]
+}
+
+model Payment {
+  id            String    @id @default(cuid())
+  invoiceId     String
+  amount        Float
+  method        String    @default("Card")
+  status        String    @default("Completed") // Completed | Pending | Scheduled | Cancelled
+  scheduledDate DateTime?
+  createdAt     DateTime  @default(now())
+  invoice       Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String   @default("")
+  permissions String   @default("{}") // JSON: { [permissionKey]: boolean }
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String @default("")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  userName  String
+  action    String
+  entity    String
+  entityId  String?
+  details   String   @default("")
+  timestamp DateTime @default(now())
+}
+
+model QuickBooksSyncLog {
+  id          String   @id @default(cuid())
+  syncType    String   // invoice | payment | customer | vendor | account
+  direction   String   // push | pull
+  entityType  String   // "Invoice" | "Payment" | "Customer" etc.
+  entityId    String   @default("")
+  qbId        String   @default("")
+  status      String   @default("pending") // pending | success | error
+  summary     String   @default("")
+  syncedAt    DateTime @default(now())
+}
+
+model EmailLog {
+  id     String   @id @default(cuid())
+  to     String
+  subject String
+  body   String
+  type   String // welcome | password_reset | invoice
+  sentAt DateTime @default(now())
+}
+
+model QuickBooksConnection {
+  id            String   @id @default(cuid())
+  realmId       String   @default("")
+  accessToken   String   @default("")
+  refreshToken  String   @default("")
+  accountName   String   @default("")
+  connected     Boolean  @default(true)
+  connectedAt   DateTime @default(now())
+  expiresAt     DateTime?
+  syncStatus    String   @default("idle") // idle | syncing | synced | error
+  lastSyncAt    DateTime?
+  lastSyncError String   @default("")
+}
