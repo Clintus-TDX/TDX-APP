@@ -5,6 +5,21 @@ import { jsonError, jsonOk } from "@/lib/server-helpers";
 
 export const dynamic = "force-dynamic";
 
+// Whitelist of valid sort fields to prevent injection
+const VALID_SORT_FIELDS = [
+  "dateCreated",
+  "dateModified",
+  "ticketId",
+  "clientName",
+  "jobPlatformName",
+  "status",
+  "fieldEngineerName",
+  "hours",
+  "payRatePrimary",
+  "payRateSecondary",
+  "expenses",
+];
+
 // GET /api/workorders — list work orders with optional filters
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser();
@@ -13,12 +28,15 @@ export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const page = Math.max(1, parseInt(sp.get("page") || "1", 10));
   const pageSize = Math.max(1, Math.min(100, parseInt(sp.get("pageSize") || "10", 10)));
-  const search = sp.get("search")?.trim() || "";
+  // FIX #1: Limit search string length to prevent performance issues
+  const search = sp.get("search")?.trim().slice(0, 100) || "";
   const statusFilter = sp.get("status") || "";
   const clientFilter = sp.get("client") || "";
   const platformFilter = sp.get("platform") || "";
   const engineerFilter = sp.get("engineer") || "";
-  const sortCol = sp.get("sort") || "dateCreated";
+  // FIX #2: Validate sort column against whitelist to prevent injection
+  const sortColParam = sp.get("sort") || "dateCreated";
+  const sortCol = VALID_SORT_FIELDS.includes(sortColParam) ? sortColParam : "dateCreated";
   const sortDir = sp.get("dir") || "desc";
   const dueDate = sp.get("dueDate") || "";
 
@@ -37,7 +55,7 @@ export async function GET(req: NextRequest) {
   if (clientFilter) where.clientId = clientFilter;
   if (platformFilter) where.jobPlatformId = platformFilter;
   if (engineerFilter) where.fieldEngineerId = engineerFilter;
-  
+
   if (search) {
     (where as Record<string, unknown>).OR = [
       { ticketId: { contains: search, mode: "insensitive" } },
@@ -119,7 +137,8 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (e: any) {
-    return jsonError(e.message || "Failed to fetch work orders");
+    console.error("WorkOrder.GET error:", e);
+    return jsonError(e.message || "Failed to fetch work orders", 500);
   }
 }
 
@@ -139,6 +158,12 @@ export async function POST(req: NextRequest) {
   const jobPlatformName = (body.jobPlatformName as string) || "";
   if (!clientName) return jsonError("Client name is required", 400);
   if (!jobPlatformName) return jsonError("Job platform is required", 400);
+
+  // FIX #3: Add basic input validation
+  const validationErrors = validateWorkOrderInput(body);
+  if (validationErrors.length > 0) {
+    return jsonError(`Validation errors: ${validationErrors.join(", ")}`, 400);
+  }
 
   const ticketId = (body.ticketId as string) || `TA-${Date.now()}`;
   const clientId = (body.clientId as string) || null;
@@ -200,6 +225,49 @@ export async function POST(req: NextRequest) {
 
     return jsonOk({ workOrder: wo });
   } catch (e: any) {
-    return jsonError(e.message || "Failed to create work order");
+    console.error("WorkOrder.POST error:", e);
+    return jsonError(e.message || "Failed to create work order", 500);
   }
+}
+
+/**
+ * Validates work order input data
+ * Returns array of validation error messages (empty if all valid)
+ */
+function validateWorkOrderInput(body: Record<string, unknown>): string[] {
+  const errors: string[] = [];
+
+  // Validate email if provided
+  if (body.engineerEmail) {
+    const email = body.engineerEmail as string;
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.push("Invalid engineer email format");
+    }
+  }
+
+  // Validate numeric fields are non-negative
+  const numericFields = ["hours", "expenses", "incurredExpenses", "hourlyRate", "authorizedExpenses", "billRate"];
+  for (const field of numericFields) {
+    if (body[field] !== undefined && body[field] !== null && body[field] !== "") {
+      const num = Number(body[field]);
+      if (isNaN(num)) {
+        errors.push(`${field} must be a valid number`);
+      } else if (num < 0) {
+        errors.push(`${field} cannot be negative`);
+      }
+    }
+  }
+
+  // Validate date fields if provided
+  const dateFields = ["etaDlaDate", "workedStartTime", "workedEndTime"];
+  for (const field of dateFields) {
+    if (body[field] !== undefined && body[field] !== null) {
+      const date = new Date(body[field] as string);
+      if (Number.isNaN(date.getTime())) {
+        errors.push(`${field} must be a valid date`);
+      }
+    }
+  }
+
+  return errors;
 }

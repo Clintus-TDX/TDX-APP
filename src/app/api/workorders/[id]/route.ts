@@ -78,7 +78,11 @@ export async function PUT(
       } else if (booleanFields.includes(key)) {
         (data as Record<string, unknown>)[key] = Boolean(body[key]);
       } else {
-        (data as Record<string, unknown>)[key] = body[key] || null;
+        // ✅ FIXED: Use empty string as default instead of null for string fields
+        // This ensures non-nullable string fields (like payRateSecondary) never receive null values
+        // Previously: body[key] || null would convert "" to null, breaking Prisma validation
+        // Now: body[key] ?? "" preserves empty strings as intended per schema defaults
+        (data as Record<string, unknown>)[key] = body[key] ?? "";
       }
     }
   }
