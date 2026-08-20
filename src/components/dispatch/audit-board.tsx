@@ -37,6 +37,7 @@ import {
   Plus,
   Calculator,
 } from "lucide-react";
+import { TaskIdsInput } from "@/components/shared/task-ids-input";
 import {
   Dialog,
   DialogContent,
@@ -97,6 +98,7 @@ interface WorkOrderFull {
   etaDlaDate: string | null;
   salesOrder: string;
   taskNumber: string;
+  taskIds?: string; // JSON array
   serialNumber: string;
   toxCode: string;
   payRatePrimary: string;
@@ -152,6 +154,7 @@ export function AuditBoard({ workOrderId, onClose, onSaved }: AuditBoardProps) {
   const [newNote, setNewNote] = useState("");
   const [deleteAttId, setDeleteAttId] = useState<string | null>(null);
   const [viewAttId, setViewAttId] = useState<string | null>(null);
+  const [taskIds, setTaskIds] = useState<string[]>([]);
 
   // Manual edit & calculator
   const [editManually, setEditManually] = useState(false);
@@ -220,6 +223,19 @@ export function AuditBoard({ workOrderId, onClose, onSaved }: AuditBoardProps) {
         setForm(newForm);
         setEditManually(Boolean(wo.editManually));
         try { setNotes(typeof wo.notes === "string" ? JSON.parse(wo.notes) : []); } catch { /* keep existing */ }
+        // Load task IDs from existing work order
+        if (wo.taskIds) {
+          try {
+            const parsed = JSON.parse(wo.taskIds);
+            if (Array.isArray(parsed)) {
+              setTaskIds(parsed);
+            }
+          } catch {
+            setTaskIds([]);
+          }
+        } else {
+          setTaskIds([]);
+        }
       });
     }
   }, [wo]);
@@ -340,6 +356,7 @@ export function AuditBoard({ workOrderId, onClose, onSaved }: AuditBoardProps) {
         customerReferences: customerRefs,
         siteLocation: siteLoc,
         editManually,
+        taskIds: taskIds.length > 0 ? JSON.stringify(taskIds) : null,
       };
 
       for (const key of allowedFields) {
@@ -547,6 +564,22 @@ export function AuditBoard({ workOrderId, onClose, onSaved }: AuditBoardProps) {
                       <Label className="text-xs text-muted-foreground">TOX Code</Label>
                       <Input value={String(form.toxCode || "")} onChange={e => updateForm("toxCode", e.target.value)} placeholder="e.g. TOX-682" className="h-9" />
                     </div>
+                  </div>
+
+                  {/* NEW: Task IDs Component */}
+                  <div className="col-span-full">
+                    {!isLoading ? (
+                      <TaskIdsInput
+                        taskIds={taskIds}
+                        onTaskIdsChange={setTaskIds}
+                        label="Task IDs (Multiple Tasks)"
+                        description="Add 1-40 task IDs for Geodis requests and complex work orders"
+                        placeholder="Enter task ID (e.g., TASK-001)"
+                        showCounter={true}
+                        maxTasks={40}
+                        disabled={saveMut.isPending}
+                      />
+                    ) : null}
                   </div>
                 </div>
 
