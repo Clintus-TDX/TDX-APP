@@ -2,8 +2,6 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser, logAudit } from "@/lib/server";
 import { jsonError } from "@/lib/server-helpers";
-import { readFile, unlink } from "fs/promises";
-import path from "path";
 
 export const dynamic = "force-dynamic";
 
@@ -19,14 +17,11 @@ export async function GET(
   const att = await db.attachment.findUnique({ where: { id } });
   if (!att) return jsonError("Not found", 404);
 
-  // Prevent path traversal: resolve and verify the path stays within storage/attachments
-  const baseDir = path.resolve(process.cwd(), "storage", "attachments");
-  const filePath = path.resolve(baseDir, att.filePath);
-  if (!filePath.startsWith(baseDir)) {
-    return jsonError("Invalid file path", 400);
-  }
   try {
-    const buffer = await readFile(filePath);
+    // Get file data from database
+    const buffer = att.fileData as Buffer;
+    if (!buffer) return jsonError("File data not found", 404);
+
     const safeFileName = att.fileName.replace(/[\n\r"']/g, "_");
     return new Response(buffer, {
       headers: {
@@ -35,8 +30,8 @@ export async function GET(
         "Content-Length": String(buffer.length),
       },
     });
-  } catch {
-    return jsonError("File not found on disk", 404);
+  } catch (e: any) {
+    return jsonError(`Failed to retrieve file: ${e.message}`, 500);
   }
 }
 
@@ -52,26 +47,21 @@ export async function DELETE(
   const att = await db.attachment.findUnique({ where: { id } });
   if (!att) return jsonError("Not found", 404);
 
-  // delete from disk
   try {
-    const baseDir = path.resolve(process.cwd(), "storage", "attachments");
-    const filePath = path.resolve(baseDir, att.filePath);
-    if (filePath.startsWith(baseDir)) {
-      await unlink(filePath);
-    }
-  } catch { /* ignore */ }
+    await db.attachment.delete({ where: { id } });
 
-  await db.attachment.delete({ where: { id } });
+    await logAudit({
+      user,
+      action: "DELETE_ATTACHMENT",
+      entity: "Attachment",
+      entityId: id,
+      details: `Deleted attachment "${att.fileName}"`,
+    });
 
-  await logAudit({
-    user,
-    action: "DELETE_ATTACHMENT",
-    entity: "Attachment",
-    entityId: id,
-    details: `Deleted attachment "${att.fileName}"`,
-  });
-
-  return new Response(JSON.stringify({ ok: true }), {
-    headers: { "Content-Type": "application/json" },
-  });
+    return new Response(JSON.stringify({ ok: true }), {
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (e: any) {
+    return jsonError(`Failed to delete attachment: ${e.message}`, 500);
+  }
 }
