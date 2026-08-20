@@ -2,8 +2,6 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser, hasPermission, logAudit, jsonError, jsonOk } from "@/lib/server";
 import { getAllowedExtensions, ATTACHMENT_LIMITS } from "@/lib/constants";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +35,7 @@ export async function POST(req: NextRequest) {
   const results: { id: string; fileName: string; fileType: string; fileSize: number; order: number }[] = [];
 
   for (const file of files) {
-    const ext = path.extname(file.name).toLowerCase();
+    const ext = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
     if (!allowed.includes(ext)) {
       return jsonError(`File type "${ext}" not allowed. Supported: ${allowed.join(", ")}`);
     }
@@ -46,45 +44,35 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Ensure storage/attachments directory exists
-  const storageDir = path.join(process.cwd(), "public", "attachments");
-  try {
-    await mkdir(storageDir, { recursive: true });
-  } catch (e: any) {
-    return jsonError(`Failed to create directory: ${e.message}`);
-  }
-
+  // Store files as binary blobs in database
   for (const file of files) {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const fileName = `${Date.now()}-${file.name}`;
-    const filePath = path.join(storageDir, fileName);
-
     try {
-      await writeFile(filePath, buffer);
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const ext = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
+      const order = existingCount + results.length;
+
+      const attachment = await db.attachment.create({
+        data: {
+          workOrderId,
+          fileName: file.name,
+          fileType: file.type || ext,
+          fileSize: file.size,
+          filePath: `blob:${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          fileData: buffer, // Store binary data directly in database
+          order,
+        },
+      });
+
+      results.push({
+        id: attachment.id,
+        fileName: attachment.fileName,
+        fileType: attachment.fileType,
+        fileSize: attachment.fileSize,
+        order: attachment.order,
+      });
     } catch (e: any) {
       return jsonError(`Failed to save file: ${e.message}`);
     }
-
-    const ext = path.extname(file.name).toLowerCase();
-    const order = existingCount + results.length;
-    const attachment = await db.attachment.create({
-      data: {
-        workOrderId,
-        fileName: file.name,
-        fileType: file.type || ext,
-        fileSize: file.size,
-        filePath: fileName,
-        order,
-      },
-    });
-
-    results.push({
-      id: attachment.id,
-      fileName: attachment.fileName,
-      fileType: attachment.fileType,
-      fileSize: attachment.fileSize,
-      order: attachment.order,
-    });
   }
 
   await logAudit({
