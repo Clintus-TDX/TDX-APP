@@ -58,7 +58,7 @@ export async function PUT(
     // Extended fields
     "streetAddress", "city", "state", "zipCode", "country",
     "pickupSiteNotes", "deliverySiteNotes", "etaDlaDate",
-    "salesOrder", "taskNumber", "serialNumber", "tdxCode",
+    "salesOrder", "taskNumber", "taskIds", "serialNumber", "tdxCode",
     "engineerPhone", "engineerContactAlt", "engineerEmail",
     "workedStartTime", "workedEndTime",
     "authorizedExpenses", "billRate", "editManually", "approveStatusSigner",
