@@ -27,6 +27,7 @@ import { STATUSES, PAY_RATE_TYPES_PRIMARY, PAY_RATE_TYPES_SECONDARY, ATTACHMENT_
 import { Loader2, Upload, X, Paperclip, Calculator, Plus, CheckCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { TaskIdsInput } from "@/components/shared/task-ids-input";
 
 interface TicketIntakeFormProps {
   open: boolean;
@@ -60,6 +61,7 @@ export function TicketIntakeForm({ open, onClose, onSubmit }: TicketIntakeFormPr
   // Customer & Order References
   const [salesOrder, setSalesOrder] = useState("");
   const [taskNumber, setTaskNumber] = useState("");
+  const [taskIds, setTaskIds] = useState<string[]>([]);
   const [serialNumber, setSerialNumber] = useState("");
   const [toxCode, setToxCode] = useState("");
 
@@ -228,6 +230,7 @@ export function TicketIntakeForm({ open, onClose, onSubmit }: TicketIntakeFormPr
           etaDlaDate: etaDlaDate ? new Date(etaDlaDate).toISOString() : null,
           salesOrder,
           taskNumber,
+          taskIds: taskIds.length > 0 ? JSON.stringify(taskIds) : null,
           serialNumber,
           toxCode,
           payRatePrimary,
@@ -394,6 +397,20 @@ export function TicketIntakeForm({ open, onClose, onSubmit }: TicketIntakeFormPr
                   <Label htmlFor="serialNumber" className="text-sm">Serial #</Label>
                   <Input id="serialNumber" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} placeholder="e.g. SN-98231" className="h-10 w-full" />
                 </div>
+
+              {/* NEW: Task IDs Input Component */}
+              <div className="col-span-full">
+                <TaskIdsInput
+                  taskIds={taskIds}
+                  onTaskIdsChange={setTaskIds}
+                  label="Task IDs (Multiple Tasks)"
+                  description="Add 1-40 task IDs for Geodis requests and complex work orders"
+                  placeholder="Enter task ID (e.g., TASK-001)"
+                  showCounter={true}
+                  maxTasks={40}
+                  disabled={submitMut.isPending}
+                />
+              </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="toxCode" className="text-sm">TOX Code</Label>
                   <Input id="toxCode" value={toxCode} onChange={e => setToxCode(e.target.value)} placeholder="e.g. TOX-682" className="h-10 w-full" />
