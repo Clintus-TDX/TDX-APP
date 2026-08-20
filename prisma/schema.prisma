@@ -82,6 +82,7 @@ model WorkOrder {
   // Order / customer detail fields
   salesOrder              String         @default("")
   taskNumber              String         @default("")
+  taskIds                 String?        // JSON: ["TASK-001", "TASK-002"] — supports 1-40 task IDs for Geodis requests
   serialNumber            String         @default("")
   tdxCode                 String         @default("") // Renamed from toxCode
   // Engineer details
@@ -122,6 +123,10 @@ model WorkOrder {
   client                  Client?        @relation(fields: [clientId], references: [id])
   fieldEngineer           FieldEngineer? @relation(fields: [fieldEngineerId], references: [id])
   attachments             Attachment[]
+
+  // Index for date filtering (etaDlaDate for scheduling queries)
+  @@index([etaDlaDate])
+  @@index([dateCreated])
 }
 
 model Attachment {
